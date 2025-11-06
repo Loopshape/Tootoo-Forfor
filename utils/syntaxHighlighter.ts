@@ -28,7 +28,7 @@ export class QuantumSyntaxHighlighter {
       tsx: this.getTSXPatterns(),
       xml: this.getXMLPatterns(),
       yaml: this.getYAMLPatterns(),
-      // FIX: Add 'yml' property to match the EditorLanguage type.
+      // FIX: Added 'yml' property to satisfy the EditorLanguage type.
       yml: this.getYAMLPatterns(),
     };
     this.currentLanguage = 'javascript';
@@ -188,7 +188,7 @@ export class QuantumSyntaxHighlighter {
       'js': 'javascript', 'jsx': 'jsx', 'ts': 'typescript', 'tsx': 'tsx',
       'html': 'html', 'htm': 'html', 'css': 'css', 'py': 'python',
       'php': 'php', 'sql': 'sql', 'md': 'markdown', 'json': 'json',
-      'txt': 'javascript', 'xml': 'xml', 'yaml': 'yaml', 'yml': 'yaml'
+      'txt': 'javascript', 'xml': 'xml', 'yaml': 'yaml', 'yml': 'yml'
     };
     return languageMap[ext || ''] || 'javascript';
   }

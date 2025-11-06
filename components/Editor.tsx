@@ -1,5 +1,5 @@
 // components/Editor.tsx
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { QuantumSyntaxHighlighter } from '../utils/syntaxHighlighter';
 import { DEBOUNCE_DELAY_MS, MAX_HISTORY_SIZE } from '../constants';
 import { EditorLanguage, EditorStatus, QuantumSettings } from '../types';
@@ -16,14 +16,13 @@ interface EditorProps {
 
 const highlighter = new QuantumSyntaxHighlighter(); // Singleton for highlighting
 
-// FIX: Wrap component in React.forwardRef to accept a ref from its parent.
-const Editor = React.forwardRef<any, EditorProps>(({
+const Editor: React.FC<EditorProps> = ({
   content,
   onContentChange,
   currentFileType,
   onEditorStatusChange,
   settings,
-}, ref) => {
+}) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   const quantumThinkingRef = useRef<HTMLDivElement>(null);
@@ -306,8 +305,9 @@ const Editor = React.forwardRef<any, EditorProps>(({
     }
   }, [currentFileType, handleInput, syncScroll, updateLineNumbers, updateStatus]);
 
-  // FIX: Use useImperativeHandle with the forwarded ref to expose component methods.
-  React.useImperativeHandle(ref, () => ({
+  // Expose editor actions via ref for parent to call
+  React.useImperativeHandle(editorRef, () => ({
+    ...editorRef.current!, // Pass native div element properties
     undo: undo,
     redo: redo,
     beautify: (lang: 'js' | 'html' | 'css') => beautifyCode(lang),
@@ -376,6 +376,6 @@ const Editor = React.forwardRef<any, EditorProps>(({
       `}</style>
     </div>
   );
-});
+};
 
 export default Editor;

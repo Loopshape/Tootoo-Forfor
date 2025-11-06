@@ -25,6 +25,7 @@ import {
   AgentInfo,
   AgentStatus,
   AgentType,
+  AIStudio, // Import AIStudio interface
   BeautifyLanguage,
   ConsensusResult,
   EditorLanguage,
@@ -55,11 +56,7 @@ declare global {
     html_beautify?: (code: string, options: any) => string;
     css_beautify?: (code: string, options: any) => string;
     quantumConsensusCode?: string;
-    // FIX: Define the aistudio interface inline to prevent type conflicts.
-    aistudio: {
-      hasSelectedApiKey: () => Promise<boolean>;
-      openSelectKey: () => Promise<void>;
-    };
+    // FIX: Removed aistudio declaration from here. It's now globally declared in types.ts to prevent type conflicts.
   }
 }
 
@@ -330,33 +327,35 @@ const App: React.FC = () => {
     setAgentStatus(AgentType.NEXUS, '<div class="quantum-spinner"></div>Starting enhanced quantum orchestration...', true);
 
     try {
-      addLog(AgentType.NEXUS, 'Generating genesis hash from current code...', LogType.GENESIS);
+      await addLog(AgentType.NEXUS, 'Generating genesis hash from current code...', LogType.GENESIS);
       const genesisHash = await sha256('GENESIS' + Date.now().toString() + editorContext);
-      addLog(AgentType.NEXUS, `Genesis: ${genesisHash.substring(0, 16)}...`, LogType.GENESIS);
+      await addLog(AgentType.NEXUS, `Genesis: ${genesisHash.substring(0, 16)}...`, LogType.GENESIS);
 
-      addLog(AgentType.NEXUS, 'Generating origin hashes for agents...', LogType.ORIGIN);
+      await addLog(AgentType.NEXUS, 'Generating origin hashes for agents...', LogType.ORIGIN);
       const agents: AgentInfo[] = [];
       const agentCount = state.settings.agentCount;
 
       for (let i = 0; i < agentCount; i++) {
         const agentId = `agent-${i}`;
-        // FIX: Correct arguments for generateFractalHash and remove unnecessary await.
-        const originHash = generateFractalHash(genesisHash + agentId, state.settings.reasoningDepth);
+        // FIX: Corrected call to generateFractalHash. The second argument must be a number (depth), not a string.
+        // Concatenated agentId with genesisHash to create a unique seed for each agent.
+        const originHash = await generateFractalHash(genesisHash + agentId);
         agents.push({ id: agentId, origin: originHash });
-        addLog(AgentType.NEXUS, `${agentId}: ${originHash.substring(0, 12)}...`, LogType.ORIGIN);
+        await addLog(AgentType.NEXUS, `${agentId}: ${originHash.substring(0, 12)}...`, LogType.ORIGIN);
       }
 
-      addLog(AgentType.NEXUS, 'Creating event log entry...', LogType.EVENT);
+      await addLog(AgentType.NEXUS, 'Creating event log entry...', LogType.EVENT);
       const eventId = generateEventId();
-      addLog(AgentType.NEXUS, `Event: ${eventId} logged`, LogType.EVENT);
+      await addLog(AgentType.NEXUS, `Event: ${eventId} logged`, LogType.EVENT);
       setAgentStatus(AgentType.COGNITO, `<div class="quantum-spinner"></div>Spawning ${agentCount} fractal agents...`, true);
 
       // Corrected type to CandidateFragment[]
       const allCandidates: CandidateFragment[] = [];
       const maxRounds = state.settings.maxRounds;
 
+      // Fixed typo: maxRrounds -> maxRounds
       for (let round = 0; round < maxRounds; round++) {
-        addLog(AgentType.RELAY, `<div class="quantum-spinner"></div>Round ${round + 1}/${maxRounds}...`, LogType.INFO);
+        await addLog(AgentType.RELAY, `<div class="quantum-spinner"></div>Round ${round + 1}/${maxRounds}...`, LogType.INFO);
         setAgentStatus(AgentType.RELAY, `Processing round ${round + 1} with ${agentCount} agents...`, true);
 
         const roundPromises = agents.map(async (agent, index) => {
@@ -375,7 +374,7 @@ const App: React.FC = () => {
             entropy: calculateEntropy(agent.origin),
             timestamp: Date.now(),
           };
-          addLog(AgentType.SENTINEL, `Fragment from ${agent.id} (round ${round})`, LogType.FRAGMENT);
+          await addLog(AgentType.SENTINEL, `Fragment from ${agent.id} (round ${round + 1})`, LogType.FRAGMENT);
 
           allCandidates.push(fragment);
           return fragment;
@@ -385,20 +384,20 @@ const App: React.FC = () => {
         await new Promise(r => setTimeout(r, 500)); // Brief pause between rounds
       }
 
-      addLog(AgentType.SENTINEL, `<div class="quantum-spinner"></div>Assembling final consensus...`, LogType.INFO);
+      await addLog(AgentType.SENTINEL, `<div class="quantum-spinner"></div>Assembling final consensus...`, LogType.INFO);
       setAgentStatus(AgentType.SENTINEL, `Evaluating ${allCandidates.length} fragments for consensus...`, true);
       const consensus = await assembleFinalAnswer(allCandidates, genesisHash); // Pass CandidateFragment[]
 
       setAgentStatus(AgentType.ECHO, `<div class="quantum-spinner"></div>Reassembling script from consensus...`, true);
-      addLog(AgentType.ECHO, `Assembly started. Verified Genesis: ${consensus.genesis.substring(0, 12)}...`, LogType.CONSENSUS);
+      await addLog(AgentType.ECHO, `Assembly started. Verified Genesis: ${consensus.genesis.substring(0, 12)}...`, LogType.CONSENSUS);
       await new Promise(r => setTimeout(r, 250));
-      addLog(AgentType.ECHO, `Selected candidate from Agent ${consensus.rootAgent} with score ${consensus.score}.`, LogType.CONSENSUS);
+      await addLog(AgentType.ECHO, `Selected candidate from Agent ${consensus.rootAgent} with score ${consensus.score}.`, LogType.CONSENSUS);
       await new Promise(r => setTimeout(r, 250));
 
       const finalCodeHash = await sha256(consensus.selectedCandidate);
-      addLog(AgentType.ECHO, `Verified final code hash: ${finalCodeHash.substring(0, 12)}...`, LogType.CONSENSUS);
+      await addLog(AgentType.ECHO, `Verified final code hash: ${finalCodeHash.substring(0, 12)}...`, LogType.CONSENSUS);
       await new Promise(r => setTimeout(r, 250));
-      addLog(AgentType.ECHO, `Reassembly complete. Quantum script generated.`, LogType.CONSENSUS);
+      await addLog(AgentType.ECHO, `Reassembly complete. Quantum script generated.`, LogType.CONSENSUS);
 
       setState(prevState => ({
         ...prevState,
@@ -446,4 +445,295 @@ const App: React.FC = () => {
       return { key, candidates: group.candidates, score, agentCount, roundCount, avgEntropy };
     });
 
-    if (scoredGroups.length === 0)
+    if (scoredGroups.length === 0) {
+      return {
+        genesis,
+        selectedCandidate: "// No valid candidates were generated by the agents.",
+        score: '0', agentCount: 0, roundCount: 0, avgEntropy: '0',
+        rootAgent: 'N/A', rootEntropy: '0', allGroups: []
+      };
+    }
+
+    scoredGroups.sort((a, b) => b.score - a.score);
+    const topGroup = scoredGroups[0];
+    const rootCandidate = topGroup.candidates.reduce((best, current) =>
+      current.entropy > best.entropy ? current : best
+    );
+
+    return {
+      genesis,
+      selectedCandidate: topGroup.candidates[0].candidate,
+      score: topGroup.score.toFixed(3),
+      agentCount: topGroup.agentCount,
+      roundCount: topGroup.roundCount,
+      avgEntropy: topGroup.avgEntropy.toFixed(3),
+      rootAgent: rootCandidate.agentId,
+      rootEntropy: rootCandidate.entropy.toFixed(3),
+      allGroups: scoredGroups,
+    };
+  }, []);
+
+  const handleQuantumAction = useCallback((action: 'optimize' | 'document' | 'refactor' | 'orchestrate') => {
+    if (!state.settings.multiAgentMode) {
+      quantumNotify('Multi-Agent Consensus must be enabled in settings for Quantum Actions.', 'warn');
+      return;
+    }
+    let prompt = '';
+    switch (action) {
+      case 'optimize':
+        prompt = 'Optimize this code for performance and readability';
+        break;
+      case 'document':
+        prompt = 'Add comprehensive documentation and comments to this code';
+        break;
+      case 'refactor':
+        prompt = 'Refactor this code to improve its structure, maintainability, and apply modern best practices';
+        break;
+      case 'orchestrate':
+      default:
+        // No specific prompt for orchestrate, it uses current prompt input
+        break;
+    }
+    if (promptInputRef.current) {
+      promptInputRef.current.value = prompt;
+    }
+    runEnhancedOrchestrator(prompt);
+  }, [state.settings.multiAgentMode, runEnhancedOrchestrator]);
+
+
+  const handleSendPrompt = useCallback(() => {
+    const prompt = promptInputRef.current?.value.trim();
+    if (!prompt) return;
+
+    if (state.settings.multiAgentMode) {
+      runEnhancedOrchestrator(prompt);
+    } else {
+      // Single-agent mode, simple API call
+      setState(prevState => ({ ...prevState, showOrchestrationPanel: true }));
+      setAgentStatus(AgentType.NEXUS, '<div class="quantum-spinner"></div>Sending prompt to single agent...', true);
+      geminiService.generateGeminiContent(prompt, 'gemini-2.5-flash').then(response => {
+        setAgentStatus(AgentType.ECHO, response);
+        addLog(AgentType.ECHO, 'Single agent response received.', LogType.CONSENSUS);
+        setAgentStatus(AgentType.NEXUS, 'Single agent task complete');
+      }).catch(error => {
+        addLog(AgentType.ECHO, `Single agent error: ${error.message}`, LogType.INFO);
+        setAgentStatus(AgentType.ECHO, `<span class="text-error-color">Error: ${error.message}</span>`);
+        setAgentStatus(AgentType.NEXUS, 'Single agent task failed');
+      }).finally(() => {
+        setState(prevState => ({ ...prevState, isGenerating: false }));
+        setAgentStatus(AgentType.NEXUS, INITIAL_AGENTS_STATE.nexus.content, false);
+      });
+    }
+  }, [state.settings.multiAgentMode, state.isGenerating, runEnhancedOrchestrator, setAgentStatus, addLog]);
+
+  // --- Consensus Action Handlers ---
+  const handleCopyAssembledCode = useCallback(() => {
+    if (state.quantumConsensusCode) {
+      navigator.clipboard.writeText(state.quantumConsensusCode).then(() => {
+        quantumNotify('Assembled code copied to clipboard!', 'success');
+      });
+    }
+  }, [state.quantumConsensusCode]);
+
+  const handleApplyAssembledCode = useCallback(() => {
+    if (state.quantumConsensusCode) {
+      editorRef.current?.setContent(state.quantumConsensusCode);
+      quantumNotify('Assembled code applied!', 'success');
+    }
+  }, [state.quantumConsensusCode]);
+
+  // --- UI Interactions ---
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
+
+  const toggleLeftPanel = useCallback(() => {
+    setIsLeftPanelOpen(prev => !prev);
+  }, []);
+
+  const handleRenderHtml = useCallback(() => {
+    if (state.currentFileType !== 'html' && state.currentFileType !== 'jsx' && state.currentFileType !== 'tsx') {
+      quantumNotify('Only HTML, JSX, or TSX files can be directly rendered.', 'warn');
+      return;
+    }
+    setState(prevState => ({
+      ...prevState,
+      showPreviewPanel: true,
+      previewHtml: state.editorContent,
+    }));
+  }, [state.editorContent, state.currentFileType]);
+
+  const setPromptInput = useCallback((prompt: string) => {
+    if (promptInputRef.current) {
+      promptInputRef.current.value = prompt;
+    }
+  }, []);
+
+  // --- Prompt Suggestions ---
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<PromptSuggestion[]>([]);
+
+  const handlePromptInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.length < 2) {
+      setShowSuggestions(false);
+      return;
+    }
+
+    const suggestions = COMMON_PROMPT_SUGGESTIONS.filter(cmd =>
+      cmd.toLowerCase().includes(value.toLowerCase())
+    ).slice(0, 5).map(s => ({
+      text: s,
+      onClick: (val: string) => {
+        if (promptInputRef.current) promptInputRef.current.value = val;
+        setShowSuggestions(false);
+      }
+    }));
+    setFilteredSuggestions(suggestions);
+    setShowSuggestions(suggestions.length > 0);
+  }, []);
+
+  const handlePromptInputBlur = useCallback(() => {
+    // Delay hiding suggestions to allow click events on suggestions
+    setTimeout(() => setShowSuggestions(false), 200);
+  }, []);
+
+  const handlePromptInputFocus = useCallback(() => {
+    const value = promptInputRef.current?.value || '';
+    if (value.length >= 2) {
+      const suggestions = COMMON_PROMPT_SUGGESTIONS.filter(cmd =>
+        cmd.toLowerCase().includes(value.toLowerCase())
+      ).slice(0, 5).map(s => ({
+        text: s,
+        onClick: (val: string) => {
+          if (promptInputRef.current) promptInputRef.current.value = val;
+          setShowSuggestions(false);
+        }
+      }));
+      setFilteredSuggestions(suggestions);
+      setShowSuggestions(suggestions.length > 0);
+    }
+  }, []);
+
+  return (
+    <div className="flex flex-col h-full">
+      <header className="relative bg-header-bg border-b border-[#22241e] flex items-center justify-between px-3 py-1.5 overflow-hidden flex-shrink-0">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-quantum-glow to-transparent animate-[quantumScan_3s_infinite_linear] opacity-30"></div>
+        <div className="flex gap-3 items-center relative z-20">
+          <button onClick={toggleLeftPanel} className="p-1 text-sm bg-err-color hover:bg-hover-blue text-[#f0f0e0] rounded-sm">
+            {isLeftPanelOpen ? '✕' : '☰'}
+          </button>
+          <div className="font-extrabold text-white animate-[quantumPulse_2s_infinite_alternate]">Nemodian 2244-1 :: Quantum Fractal AI</div>
+        </div>
+        <div className="flex gap-2 items-center relative z-20">
+          <div className="flex items-center gap-1">
+            <div className={`w-2 h-2 rounded-full ${state.aiConnectionStatus === AiConnectionStatus.READY ? 'bg-accent-color' : 'bg-err-color'} ${state.aiConnectionStatus === AiConnectionStatus.PROBING ? 'animate-pulse' : ''}`} />
+            <div className="text-xs text-[#cfcfbd]">Quantum AI: {state.aiConnectionStatus}</div>
+          </div>
+          <input type="file" id="file-input" accept=".js,.html,.css,.txt,.json,.ts,.jsx,.tsx,.py,.php,.sql,.md,.xml,.yaml,.yml" className="hidden" onChange={handleFileOpen} />
+          <button onClick={() => document.getElementById('file-input')?.click()} className="small bg-err-color hover:bg-hover-blue text-[#f0f0e0] px-2 py-1 text-xs rounded-sm">Open</button>
+          <button onClick={quantumSaveFile} className="small bg-err-color hover:bg-hover-blue text-[#f0f0e0] px-2 py-1 text-xs rounded-sm">Save</button>
+          <button onClick={quantumSaveAsFile} className="small bg-err-color hover:bg-hover-blue text-[#f0f0e0] px-2 py-1 text-xs rounded-sm">Save As</button>
+          <button onClick={handleRenderHtml} className="small bg-warn-bg text-panel-bg hover:bg-hover-blue hover:text-[#f0f0e0] px-2 py-1 text-xs rounded-sm">Render HTML</button>
+          <button onClick={handleSendPrompt} disabled={state.isGenerating} className="small bg-info-bg hover:bg-hover-blue text-[#f0f0e0] px-2 py-1 text-xs rounded-sm">Quantum AI</button>
+          <button onClick={() => handleQuantumAction('orchestrate')} disabled={state.isGenerating || !state.settings.multiAgentMode} className="small bg-accent-color hover:bg-hover-blue text-[#f0f0e0] px-2 py-1 text-xs rounded-sm">Orchestrator</button>
+        </div>
+      </header>
+
+      <StatusBar
+        fileName={state.currentFileName}
+        editorStatus={state.editorStatus}
+        memoryMetrics={state.memoryMetrics}
+      />
+
+      <div className={`flex-1 grid bg-theme-bg overflow-hidden relative transition-all duration-300 ease-in-out ${isLeftPanelOpen ? 'grid-cols-[240px_1fr]' : 'grid-cols-[0px_1fr]'}`}>
+        <LeftPanel
+          isOpen={isLeftPanelOpen}
+          settings={state.settings}
+          onSettingChange={handleSettingChange}
+          onEditorAction={handleEditorAction}
+          onQuantumAction={handleQuantumAction}
+          onMemoryAction={handleMemoryAction}
+          recentFiles={state.recentFiles}
+          onRecentFileClick={(filename) => {
+            const file = state.recentFiles.find(f => f.filename === filename);
+            if (file) {
+              editorRef.current?.setContent(file.contentPreview); // Use contentPreview for quick load
+              setState(prevState => ({
+                ...prevState,
+                currentFileName: filename,
+                currentFileType: editorRef.current?.getHighlighter().detectLanguage(filename) || 'javascript',
+              }));
+              quantumNotify(`Loaded recent file: ${filename}`, 'success');
+            }
+          }}
+          onRenderHtml={handleRenderHtml}
+          setPromptInput={setPromptInput}
+        />
+        <Editor
+          ref={editorRef}
+          content={state.editorContent}
+          onContentChange={handleEditorContentChange}
+          currentFileType={state.currentFileType}
+          onEditorStatusChange={handleEditorStatusChange}
+          settings={state.settings}
+        />
+      </div>
+
+      <footer className="flex-shrink-0 flex items-center justify-between px-3 py-1.5 bg-header-bg border-t border-[#22241e] h-footer-h">
+        <input
+          ref={promptInputRef}
+          id="prompt-input"
+          placeholder="Enter quantum command (e.g., 'create a function to sort arrays')"
+          className="flex-1 mr-2 px-2 py-1 bg-status-bg border border-accent-color text-[#f0f0e0] font-['Fira_Code'] rounded-sm text-base"
+          onKeyDown={(e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+              e.preventDefault();
+              handleSendPrompt();
+            }
+          }}
+          onChange={handlePromptInputChange}
+          onFocus={handlePromptInputFocus}
+          onBlur={handlePromptInputBlur}
+          disabled={state.isGenerating}
+        />
+        <button onClick={handleSendPrompt} disabled={state.isGenerating} className="bg-accent-color hover:bg-hover-blue text-[#f0f0e0] px-3 py-1.5 rounded-sm">
+          {state.isGenerating ? <div className="quantum-spinner" /> : 'QUANTUM PROCESS'}
+        </button>
+        {showSuggestions && (
+          <div ref={suggestionsPanelRef} className="absolute bottom-[calc(theme(spacing.footer-h)+5px)] left-3 bg-panel-bg border border-accent-color rounded-md max-h-52 overflow-y-auto z-[1000] shadow-lg w-[calc(100%-120px)]">
+            {filteredSuggestions.map((suggestion, index) => (
+              <div
+                key={index}
+                className="px-2 py-1 border-b border-muted-text last:border-b-0 cursor-pointer hover:bg-white/[0.1] text-xs"
+                onMouseDown={(e) => { // Use onMouseDown to prevent blur event from firing
+                  e.preventDefault();
+                  suggestion.onClick(suggestion.text);
+                }}
+              >
+                {suggestion.text}
+              </div>
+            ))}
+          </div>
+        )}
+      </footer>
+
+      <OrchestrationPanel
+        agents={state.agents}
+        consensusResult={state.consensusResult}
+        show={state.showOrchestrationPanel}
+        onClose={() => setState(prevState => ({ ...prevState, showOrchestrationPanel: false }))}
+        onCopyAssembledCode={handleCopyAssembledCode}
+        onApplyAssembledCode={handleApplyAssembledCode}
+        onRerunOrchestration={() => runEnhancedOrchestrator()}
+        editorLanguage={state.currentFileType}
+      />
+
+      <PreviewPanel
+        show={state.showPreviewPanel}
+        onClose={() => setState(prevState => ({ ...prevState, showPreviewPanel: false }))}
+        htmlContent={state.previewHtml}
+      />
+    </div>
+  );
+};
+
+export default App;

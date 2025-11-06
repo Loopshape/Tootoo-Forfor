@@ -134,8 +134,15 @@ export type QuantumAppState = {
   quantumConsensusCode: string | null;
 };
 
-// Define the AIStudio interface for global declaration in App.tsx
+// Define the AIStudio interface for global declaration
 export interface AIStudio {
   hasSelectedApiKey: () => Promise<boolean>;
   openSelectKey: () => Promise<void>;
+}
+
+// FIX: Added global declaration for window.aistudio to centralize the type and fix declaration errors.
+declare global {
+  interface Window {
+    aistudio: AIStudio;
+  }
 }

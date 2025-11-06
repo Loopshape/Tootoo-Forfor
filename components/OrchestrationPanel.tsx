@@ -6,8 +6,6 @@ import {
   ConsensusResult,
   OrchestrationLogEntry,
   LogType,
-  // FIX: Import EditorLanguage type.
-  EditorLanguage,
 } from '../types';
 import { AGENT_NAMES_MAP } from '../constants';
 import { QuantumSyntaxHighlighter } from '../utils/syntaxHighlighter';
@@ -21,8 +19,7 @@ interface OrchestrationPanelProps {
   onCopyAssembledCode: () => void;
   onApplyAssembledCode: () => void;
   onRerunOrchestration: () => void;
-  // FIX: Use the specific EditorLanguage type instead of a generic string.
-  editorLanguage: EditorLanguage;
+  editorLanguage: string;
 }
 
 const OrchestrationPanel: React.FC<OrchestrationPanelProps> = ({
@@ -132,10 +129,10 @@ const OrchestrationPanel: React.FC<OrchestrationPanelProps> = ({
                     <span>Agents: {group.agentCount} | Rounds: {group.roundCount}</span>
                     <span>Score: {group.score.toFixed(2)} | Entropy: {group.avgEntropy.toFixed(3)}</span>
                   </div>
-                  <pre className="text-xs font-['Fira_Code'] whitespace-pre-wrap max-h-20 overflow-hidden text-sh-text" dangerouslySetInnerHTML={{__html:
-                    highlighter.highlightText(group.candidates[0].candidate.substring(0, 200), editorLanguage) +
-                    (group.candidates[0].candidate.length > 200 ? '...' : '')
-                  }}/>
+                  <pre className="text-xs font-['Fira_Code'] whitespace-pre-wrap max-h-20 overflow-hidden text-sh-text">{
+                    highlighter.highlightText(group.candidates[0].candidate.substring(0, 200), editorLanguage)}
+                    {group.candidates[0].candidate.length > 200 ? '...' : ''}
+                  </pre>
                 </div>
               ))}
             </div>
