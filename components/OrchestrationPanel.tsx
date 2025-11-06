@@ -6,6 +6,7 @@ import {
   ConsensusResult,
   OrchestrationLogEntry,
   LogType,
+  EditorLanguage,
 } from '../types';
 import { AGENT_NAMES_MAP } from '../constants';
 import { QuantumSyntaxHighlighter } from '../utils/syntaxHighlighter';
@@ -58,12 +59,13 @@ const OrchestrationPanel: React.FC<OrchestrationPanelProps> = ({
       panelRef.current.scrollTop = panelRef.current.scrollHeight;
     }
     Object.values(AgentType).forEach((agentType) => {
-      if (agents[agentType].isActive) {
-        animateAgentCard(agentType, true);
-        const logElement = logRefs[agentType as AgentType].current;
-        if (logElement) logElement.scrollTop = logElement.scrollHeight;
-      } else {
-        animateAgentCard(agentType, false);
+      // Animate agent card based on active status
+      animateAgentCard(agentType, agents[agentType].isActive);
+
+      // Always scroll log to bottom on update to ensure visibility
+      const logElement = logRefs[agentType as AgentType].current;
+      if (logElement) {
+        logElement.scrollTop = logElement.scrollHeight;
       }
     });
   }, [show, agents, logRefs]);
@@ -99,7 +101,7 @@ const OrchestrationPanel: React.FC<OrchestrationPanelProps> = ({
               'Quantum Assembler (Final Code)'
             }</div>
             <div className="text-xs leading-tight min-h-5">{agents[agentType].content}</div>
-            <div ref={logRefs[agentType as AgentType]} className="bg-black/30 rounded-sm p-2 mt-2 max-h-32 overflow-y-auto text-xs font-['Fira_Code']">
+            <div ref={logRefs[agentType as AgentType]} className="agent-log-scrollbar bg-black/30 rounded-sm p-2 mt-2 max-h-32 overflow-y-auto text-xs font-['Fira_Code']">
               {agents[agentType].log.map((entry, idx) => (
                 <div key={idx} className={`mb-1 pl-2 border-l-2 ${getLogEntryClass(entry.type)}`}>
                   [{entry.timestamp}] {entry.message}
@@ -129,10 +131,8 @@ const OrchestrationPanel: React.FC<OrchestrationPanelProps> = ({
                     <span>Agents: {group.agentCount} | Rounds: {group.roundCount}</span>
                     <span>Score: {group.score.toFixed(2)} | Entropy: {group.avgEntropy.toFixed(3)}</span>
                   </div>
-                  <pre className="text-xs font-['Fira_Code'] whitespace-pre-wrap max-h-20 overflow-hidden text-sh-text">{
-                    highlighter.highlightText(group.candidates[0].candidate.substring(0, 200), editorLanguage)}
-                    {group.candidates[0].candidate.length > 200 ? '...' : ''}
-                  </pre>
+                  {/* FIX: Cast `editorLanguage` to `EditorLanguage` to satisfy highlighter type requirements. */}
+                  <pre className="text-xs font-['Fira_Code'] whitespace-pre-wrap max-h-20 overflow-hidden text-sh-text" dangerouslySetInnerHTML={{ __html: highlighter.highlightText(group.candidates[0].candidate.substring(0, 200) + (group.candidates[0].candidate.length > 200 ? '...' : ''), editorLanguage as EditorLanguage) }} />
                 </div>
               ))}
             </div>
@@ -144,6 +144,22 @@ const OrchestrationPanel: React.FC<OrchestrationPanelProps> = ({
           </div>
         )}
       </div>
+      <style>{`
+        .agent-log-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .agent-log-scrollbar::-webkit-scrollbar-track {
+          background: rgba(0,0,0,0.2);
+          border-radius: 3px;
+        }
+        .agent-log-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #999966; /* muted-text */
+          border-radius: 3px;
+        }
+        .agent-log-scrollbar::-webkit-scrollbar-thumb:hover {
+          background-color: #4ac94a; /* accent-color */
+        }
+      `}</style>
     </div>
   );
 };

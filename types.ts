@@ -140,9 +140,14 @@ export interface AIStudio {
   openSelectKey: () => Promise<void>;
 }
 
-// FIX: Added global declaration for window.aistudio to centralize the type and fix declaration errors.
+// FIX: Centralized all window global declarations here to avoid conflicts and fix declaration errors.
 declare global {
   interface Window {
     aistudio: AIStudio;
+    quantumMemoryCache?: Map<string, any>;
+    js_beautify?: (code: string, options: any) => string;
+    html_beautify?: (code: string, options: any) => string;
+    css_beautify?: (code: string, options: any) => string;
+    quantumConsensusCode?: string;
   }
 }

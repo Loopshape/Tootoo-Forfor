@@ -49,16 +49,7 @@ import {
 import { createFractalNodes, quantumNotify } from './utils/quantumEffects';
 import { geminiService } from './services/geminiService';
 
-declare global {
-  interface Window {
-    quantumMemoryCache?: Map<string, any>;
-    js_beautify?: (code: string, options: any) => string;
-    html_beautify?: (code: string, options: any) => string;
-    css_beautify?: (code: string, options: any) => string;
-    quantumConsensusCode?: string;
-    // FIX: Removed aistudio declaration from here. It's now globally declared in types.ts to prevent type conflicts.
-  }
-}
+// FIX: Removed global declarations from here. They are now centralized in types.ts.
 
 // Global instance for memory management
 const memoryManager = new QuantumMemoryManager();

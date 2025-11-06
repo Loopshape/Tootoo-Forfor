@@ -16,13 +16,14 @@ interface EditorProps {
 
 const highlighter = new QuantumSyntaxHighlighter(); // Singleton for highlighting
 
-const Editor: React.FC<EditorProps> = ({
+// FIX: Wrapped component in React.forwardRef to allow parent components to pass a ref.
+const Editor = React.forwardRef<any, EditorProps>(({
   content,
   onContentChange,
   currentFileType,
   onEditorStatusChange,
   settings,
-}) => {
+}, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
   const quantumThinkingRef = useRef<HTMLDivElement>(null);
@@ -306,8 +307,8 @@ const Editor: React.FC<EditorProps> = ({
   }, [currentFileType, handleInput, syncScroll, updateLineNumbers, updateStatus]);
 
   // Expose editor actions via ref for parent to call
-  React.useImperativeHandle(editorRef, () => ({
-    ...editorRef.current!, // Pass native div element properties
+  // FIX: Used the forwarded `ref` and removed invalid spreading of DOM element properties.
+  React.useImperativeHandle(ref, () => ({
     undo: undo,
     redo: redo,
     beautify: (lang: 'js' | 'html' | 'css') => beautifyCode(lang),
@@ -376,6 +377,6 @@ const Editor: React.FC<EditorProps> = ({
       `}</style>
     </div>
   );
-};
+});
 
 export default Editor;
